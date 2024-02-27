@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticCustomError
-from .books import BaseBook
+from .books import ReturnedBookNotSellers
 
 __all__ = ["IncomingSeller", "ReturnedAllSellers",
            "ReturnedSeller", "ReturnedSellerBooks",
@@ -14,28 +14,29 @@ class BaseSeller(BaseModel):
     e_mail: str
 
 
-# Класс для входядщих данных, где есть пароль.
+# Класс для входящих данных, где есть пароль.
 class IncomingSeller(BaseSeller):
     password: str
 
 
-# Класс ответа на регистрацию
+# Класс ответа на регистрацию.
 class ReturnedSeller(BaseSeller):
     id: int
     password: str
 
 
-# Класс ответа 1 пользователя для вывода
+# Класс ответа 1 пользователя для вывода.
 class ReturnedSellerId(BaseSeller):
     id: int
 
 
-# Класс для возврата массива продавцов
+# Класс для возврата массива продавцов.
 class ReturnedAllSellers(BaseModel):
     sellers: list[ReturnedSellerId]
 
 
-# Класс просмотра продовца с книгами
+# Класс просмотра продавца с книгами.
 class ReturnedSellerBooks(BaseSeller):
     id: int
-    books: list[BaseBook]
+    books: list[ReturnedBookNotSellers]
+

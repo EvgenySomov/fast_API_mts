@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
-from icecream import ic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,17 +11,15 @@ from src.models.books import Book
 
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
 
-
-#Подключение к базе
+# Подключение к базе
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 
-# Ручка для создания записи о продавце. Возвращает нового продовца.
-@sellers_router.post("/", response_model=ReturnedSeller, status_code=status.HTTP_201_CREATED)  # Прописываем модель ответа
+# Ручка для создания записи о продавце. Возвращает нового продавца.
+@sellers_router.post("/", response_model=ReturnedSeller, status_code=status.HTTP_201_CREATED)
 async def create_seller(
     seller: IncomingSeller, session: DBSession
-):  # прописываем модель валидирующую входные данные и сессию как зависимость.
-    # это - бизнес логика. Обрабатываем данные, сохраняем, преобразуем и т.д.
+):
     new_seller = Seller(
         first_name=seller.first_name,
         last_name=seller.last_name,
@@ -35,7 +32,7 @@ async def create_seller(
     return new_seller
 
 
-# Ручка, возвращающая всех продавцов
+# Ручка, возвращающая всех продавцов.
 @sellers_router.get("/", response_model=ReturnedAllSellers)
 async def get_all_seller(session: DBSession):
     query = select(Seller)
@@ -44,25 +41,25 @@ async def get_all_seller(session: DBSession):
     return {"sellers": sellers}
 
 
-# Ручка, возвращающая продавца и его книги
+# Ручка, возвращающая продавца и его книги.
 @sellers_router.get("/{seller_id}", response_model=ReturnedSellerBooks)
 async def get_seller(seller_id: int, session: DBSession):
 
-    seller = await session.get(Seller, seller_id)
-    books = await session.execute(select(Book).filter(Book.seller_id == seller_id))
+    if seller := await session.get(Seller, seller_id):
+        books = await session.execute(select(Book).filter(Book.seller_id == seller_id))
 
-    books = books.scalars().all()
+        books = books.scalars().all()
 
-    # Думаю это костыль, так-как не совсем понял, как красиво объяснить модели, что нужно показать :(
-    res = dict(books=books, **seller.__dict__)
-    return res
+        # Думаю это костыль, так-как не совсем понял, как красиво объяснить модели, что нужно показать :(
+        res = dict(books=books, **seller.__dict__)
+        return res
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
-
-# Ручка для обновления данных о продавце
+# Ручка для обновления данных о продавце.
 @sellers_router.put("/{seller_id}")
-async def update_book(seller_id: int, new_data: BaseSeller, session: DBSession):
-    # Оператор "морж", позволяющий одновременно и присвоить значение и проверить его.
+async def update_seller(seller_id: int, new_data: BaseSeller, session: DBSession):
+
     if updated_seller := await session.get(Seller, seller_id):
         updated_seller.first_name = new_data.first_name
         updated_seller.last_name = new_data.last_name
@@ -74,13 +71,13 @@ async def update_book(seller_id: int, new_data: BaseSeller, session: DBSession):
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
-# Ручка для удаления книги
+# Ручка для продавца.
 @sellers_router.delete("/{seller_id}")
-async def delete_book(seller_id: int, session: DBSession):
+async def delete_seller(seller_id: int, session: DBSession):
     if deleted_seller := await session.get(Seller, seller_id):
         await session.delete(deleted_seller)
 
-        return Response(status_code=status.HTTP_204_NO_CONTENT)  # Response может вернуть текст и метаданные.
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 

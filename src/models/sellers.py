@@ -17,4 +17,4 @@ class Seller(BaseModel):
     password: Mapped[str] = mapped_column(String(50), nullable=False)
     # books = relationship("Book", cascade="all, delete-orphan", backref='Seller')
     # books: Mapped[List["Book"]] = relationship("Book", cascade="all, delete-orphan")
-    books: Mapped[List["Book"]] = relationship(back_populates="seller", cascade="all, delete-orphan")
+    books: Mapped[List["Book"]] = relationship("Book", cascade="all, delete-orphan")

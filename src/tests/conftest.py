@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from src.configurations.settings import settings
 from src.models import books  # noqa
 from src.models.base import BaseModel
-from src.models.books import Book  # noqa F401
+from src.models.books import Book# noqa F401
+from src.models.sellers import Seller# noqa F401
 
 # Переопределяем движок для запуска тестов и подключаем его к тестовой базе.
 # Это решает проблему с сохранностью данных в основной базе приложения.
@@ -32,7 +33,7 @@ async_test_session = async_sessionmaker(async_test_engine, expire_on_commit=Fals
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for each test case."""
-    # loop = asyncio.new_event_loop() # На разных версиях питона и разных ОС срабатывает по разному
+    #loop = asyncio.new_event_loop() # На разных версиях питона и разных ОС срабатывает по разному
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
