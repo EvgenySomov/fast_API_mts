@@ -1,10 +1,18 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from typing import Annotated
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.configurations.database import get_async_session
+
+from fastapi import APIRouter, Depends, Response, status, HTTPException
 from passlib.context import CryptContext
 import jwt
 from datetime import datetime, timedelta
+from sqlalchemy import select
+from src.models.sellers import Seller
 
+DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 # Класс для работы с паролями
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -20,7 +28,7 @@ def create_access_token(data: dict, expires_delta: timedelta):
 
 
 # Схема для запроса аутентификации
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") # Схема для запроса аутентификации
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token") # Схема для запроса аутентификации
 
 
 # Проверка пароля
@@ -28,18 +36,19 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# Получение пользователя по имени
-def get_user(username: str):
-    if username in fake_users_db:
-        user_dict = fake_users_db[username]
-        return User(**user_dict)
+# Получение пользователя по паролю
+async def get_user(password: str):
+
+    seller = await DBSession.execute(select(Seller).filter(Seller.password == password))
+    seller = seller.scalars().first()
+    return seller
 
 
 async def authenticate_user(username: str, password: str):
     user = get_user(username)
     if not user:
         return False
-    if not verify_password(password, user.hashed_password):
+    if not verify_password(password, user.password):
         return False
     return user
 

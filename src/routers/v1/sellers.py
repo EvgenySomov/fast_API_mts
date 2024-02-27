@@ -9,10 +9,13 @@ from src.models.sellers import Seller
 from src.schemas import IncomingSeller, ReturnedAllSellers, ReturnedSeller, ReturnedSellerBooks, BaseSeller
 from src.models.books import Book
 
+from passlib.context import CryptContext
+
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
 
 # Подключение к базе
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # Ручка для создания записи о продавце. Возвращает нового продавца.
@@ -24,7 +27,7 @@ async def create_seller(
         first_name=seller.first_name,
         last_name=seller.last_name,
         e_mail=seller.e_mail,
-        password=seller.password,
+        password=pwd_context.hash(seller.password),
     )
     session.add(new_seller)
     await session.flush()

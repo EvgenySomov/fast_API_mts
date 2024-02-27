@@ -3,6 +3,7 @@ from pydantic_core import PydanticCustomError
 
 __all__ = ["User"]
 
+
 # Класс пользователя для токинизации
 class User(BaseModel):
     username: str

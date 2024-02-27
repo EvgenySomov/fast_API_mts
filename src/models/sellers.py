@@ -14,7 +14,7 @@ class Seller(BaseModel):
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     e_mail: Mapped[str] = mapped_column(String(50), nullable=False)
-    password: Mapped[str] = mapped_column(String(50), nullable=False)
+    password: Mapped[str] = mapped_column(String(200), nullable=False)
     # books = relationship("Book", cascade="all, delete-orphan", backref='Seller')
     # books: Mapped[List["Book"]] = relationship("Book", cascade="all, delete-orphan")
     books: Mapped[List["Book"]] = relationship("Book", cascade="all, delete-orphan")
