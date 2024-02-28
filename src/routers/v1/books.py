@@ -1,8 +1,6 @@
 from typing import Annotated
-
 from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import JSONResponse
-from icecream import ic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +8,7 @@ from src.configurations.database import get_async_session
 from src.models.books import Book
 from src.models.sellers import Seller
 from src.schemas import IncomingBook, ReturnedAllBooks, ReturnedBook
+from src.jwt_auth.auth import get_current_user
 
 books_router = APIRouter(tags=["books"], prefix="/books")
 
@@ -17,9 +16,10 @@ DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 
 # Ручка для создания записи о книге в БД. Возвращает созданную книгу.
+# Закрыта токеном!
 @books_router.post("/", response_model=ReturnedBook, status_code=status.HTTP_201_CREATED)
 async def create_book(
-    book: IncomingBook, session: DBSession
+    book: IncomingBook, session: DBSession, current_user: Seller = Depends(get_current_user)
 ):
     # Проверяем, есть ли вообще продавец
     if seller := await session.get(Seller, book.seller_id):
@@ -65,8 +65,12 @@ async def delete_book(book_id: int, session: DBSession):
 
 
 # Ручка для обновления данных о книге
+# Закрыта токеном!
 @books_router.put("/{book_id}")
-async def update_book(book_id: int, new_data: ReturnedBook, session: DBSession):
+async def update_book(book_id: int,
+                      new_data: ReturnedBook,
+                      session: DBSession,
+                      current_user: Seller = Depends(get_current_user)):
 
     if updated_book := await session.get(Book, book_id):
         updated_book.author = new_data.author

@@ -1,77 +1,62 @@
-from fastapi import FastAPI, Depends, HTTPException, status
 from typing import Annotated
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.configurations.database import get_async_session
 
-from fastapi import APIRouter, Depends, Response, status, HTTPException
+from fastapi import Depends, HTTPException
 from passlib.context import CryptContext
 import jwt
 from datetime import datetime, timedelta
 from sqlalchemy import select
 from src.models.sellers import Seller
 
+
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 # Класс для работы с паролями
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-# Генерация JWT токена
-def create_access_token(data: dict, expires_delta: timedelta):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, "secret_key", algorithm="HS256")
-    return encoded_jwt
-
-
 # Схема для запроса аутентификации
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token") # Схема для запроса аутентификации
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")  # Схема для запроса аутентификации
 
 
-# Проверка пароля
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+SECRET_KEY = "my_secret_key"
+ALGORITHM = "HS256"
+EXPIRATION_TIME = timedelta(minutes=30)
 
 
-# Получение пользователя по паролю
-async def get_user(password: str):
+# Создание токена
+def create_jwt_token(data: dict):
+    expiration = datetime.utcnow() + EXPIRATION_TIME
+    data.update({"exp": expiration})
+    token = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+    return token
 
-    seller = await DBSession.execute(select(Seller).filter(Seller.password == password))
+
+# Верификация токена
+def verify_jwt_token(token: str):
+    try:
+        decoded_data = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return decoded_data
+    except jwt.PyJWTError:
+        return None
+
+
+# Проверка токена
+async def get_current_user(token: str = Depends(oauth2_scheme), session=Depends(get_async_session)):
+    decoded_data = verify_jwt_token(token)
+    if not decoded_data:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    user = await get_user(decoded_data["sub"], session)  # Используйте объект сессии session
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    return user
+
+
+# Функция возвращает продавца
+async def get_user(e_mail: str, session: DBSession):
+    seller = await session.execute(select(Seller).filter(Seller.e_mail == e_mail))
     seller = seller.scalars().first()
     return seller
 
-
-async def authenticate_user(username: str, password: str):
-    user = get_user(username)
-    if not user:
-        return False
-    if not verify_password(password, user.password):
-        return False
-    return user
-
-
-# Получение текущего пользователя
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, "secret_key", algorithms=["HS256"])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except jwt.ExpiredSignatureError:
-        raise credentials_exception
-    except jwt.JWTError:
-        raise credentials_exception
-
-    user = get_user(username)
-    if user is None:
-        raise credentials_exception
-    return user
 

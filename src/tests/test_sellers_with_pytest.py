@@ -3,6 +3,27 @@ from fastapi import status
 from sqlalchemy import select
 from src.models import books
 from src.models import sellers
+from src.jwt_auth.auth import pwd_context
+
+
+# Вспомогательная функция для записи 1 продавца и получения его токена
+async def get_token(db_session, async_client):
+    auth_data = dict(e_mail="@test.seller",
+                     password=pwd_context.hash("passwordtestseller")
+                     )
+
+    seller = sellers.Seller(first_name="test_seller",
+                            last_name="test_seller",
+                            **auth_data
+                            )
+    db_session.add(seller)
+    await db_session.flush()
+    auth_data["password"] = "passwordtestseller"
+
+    # Сначала получаем токен
+    response = await async_client.post("/api/v1/token/", json=auth_data)
+    token = response.json()["access_token"]
+    return token, seller
 
 
 # Тест для проверки регистрации продавца
@@ -13,8 +34,14 @@ async def test_create_seller(async_client):
 
     assert response.status_code == status.HTTP_201_CREATED
 
-    data["id"] = 6
+    # Проверим пароль
     result_data = response.json()
+    assert pwd_context.verify(data["password"], result_data["password"])
+
+    del data["password"]
+    del result_data["password"]
+
+    data["id"] = 7
 
     assert result_data == data
 
@@ -22,6 +49,7 @@ async def test_create_seller(async_client):
 # Тест для проверки списка продавцов
 @pytest.mark.asyncio
 async def test_get_sellers(db_session, async_client):
+
     seller = sellers.Seller(first_name="first_Test_1", last_name="last_test_1", e_mail="test1@ru", password="pass1")
     seller_2 = sellers.Seller(first_name="first_Test_2", last_name="last_test_2", e_mail="test1@ru", password="pass2")
 
@@ -47,8 +75,8 @@ async def test_get_sellers(db_session, async_client):
 
 # Тест для проверки 1 продавца с книгами и без
 @pytest.mark.asyncio
-async def test_get_sellers(db_session, async_client):
-
+async def test_get_single_sellers(db_session, async_client):
+    token, _ = await get_token(db_session, async_client)
     # Добавим пару продавцов
     seller = sellers.Seller(first_name="first_Test_1", last_name="last_test_1", e_mail="test1@ru", password="pass1")
     seller_2 = sellers.Seller(first_name="first_Test_2", last_name="last_test_2", e_mail="test1@ru", password="pass2")
@@ -56,7 +84,7 @@ async def test_get_sellers(db_session, async_client):
     db_session.add_all([seller, seller_2])
     await db_session.flush()
 
-    response = await async_client.get(f"/api/v1/sellers/{seller.id}")
+    response = await async_client.get(f"/api/v1/sellers/{seller.id}", headers={"Authorization": "Bearer " + token})
 
     # Проверим без книг первого
     assert response.json() == {"first_name": seller.first_name,
@@ -80,7 +108,7 @@ async def test_get_sellers(db_session, async_client):
     del dict_book["seller_id"]
     dict_book["id"] = book.id
 
-    response = await async_client.get(f"/api/v1/sellers/{seller_2.id}")
+    response = await async_client.get(f"/api/v1/sellers/{seller_2.id}", headers={"Authorization": "Bearer " + token})
 
     # Проверяем интерфейс ответа, на который у нас есть контракт.
     assert response.json() == {"first_name": seller_2.first_name,
@@ -94,6 +122,7 @@ async def test_get_sellers(db_session, async_client):
 # Тест для проверки изменения информации о продавце
 @pytest.mark.asyncio
 async def test_update_seller(db_session, async_client):
+    token, _ = await get_token(db_session, async_client)
     # Добавим пару продавцов
     seller = sellers.Seller(first_name="first_Test_1", last_name="last_test_1", e_mail="test1@ru", password="pass1")
     seller_2 = sellers.Seller(first_name="first_Test_2", last_name="last_test_2", e_mail="test1@ru", password="pass2")
@@ -125,7 +154,7 @@ async def test_update_seller(db_session, async_client):
 
     assert response.status_code == status.HTTP_200_OK
 
-    response = await async_client.get(f"/api/v1/sellers/{seller.id}")
+    response = await async_client.get(f"/api/v1/sellers/{seller.id}", headers={"Authorization": "Bearer " + token})
 
     # Проверяем, что обновились все поля не затронув книги
     assert response.json() == {**dict_new_seller_info,

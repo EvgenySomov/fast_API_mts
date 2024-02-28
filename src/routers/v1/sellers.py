@@ -8,26 +8,26 @@ from src.configurations.database import get_async_session
 from src.models.sellers import Seller
 from src.schemas import IncomingSeller, ReturnedAllSellers, ReturnedSeller, ReturnedSellerBooks, BaseSeller
 from src.models.books import Book
+from src.jwt_auth.auth import pwd_context
+from src.jwt_auth.auth import get_current_user
 
-from passlib.context import CryptContext
 
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
 
 # Подключение к базе
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # Ручка для создания записи о продавце. Возвращает нового продавца.
 @sellers_router.post("/", response_model=ReturnedSeller, status_code=status.HTTP_201_CREATED)
 async def create_seller(
-    seller: IncomingSeller, session: DBSession
+        seller: IncomingSeller, session: DBSession
 ):
     new_seller = Seller(
         first_name=seller.first_name,
         last_name=seller.last_name,
         e_mail=seller.e_mail,
-        password=pwd_context.hash(seller.password),
+        password=pwd_context.hash(seller.password),  # Будем хешировать пароль
     )
     session.add(new_seller)
     await session.flush()
@@ -45,9 +45,9 @@ async def get_all_seller(session: DBSession):
 
 
 # Ручка, возвращающая продавца и его книги.
+# Закрыта токеном!
 @sellers_router.get("/{seller_id}", response_model=ReturnedSellerBooks)
-async def get_seller(seller_id: int, session: DBSession):
-
+async def get_seller(seller_id: int, session: DBSession, current_user: Seller = Depends(get_current_user)):
     if seller := await session.get(Seller, seller_id):
         books = await session.execute(select(Book).filter(Book.seller_id == seller_id))
 
@@ -62,7 +62,6 @@ async def get_seller(seller_id: int, session: DBSession):
 # Ручка для обновления данных о продавце.
 @sellers_router.put("/{seller_id}")
 async def update_seller(seller_id: int, new_data: BaseSeller, session: DBSession):
-
     if updated_seller := await session.get(Seller, seller_id):
         updated_seller.first_name = new_data.first_name
         updated_seller.last_name = new_data.last_name
@@ -83,4 +82,3 @@ async def delete_seller(seller_id: int, session: DBSession):
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     return Response(status_code=status.HTTP_404_NOT_FOUND)
-

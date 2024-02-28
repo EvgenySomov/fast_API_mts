@@ -1,11 +1,16 @@
-from pydantic import BaseModel, Field, field_validator
-from pydantic_core import PydanticCustomError
+from pydantic import BaseModel
 
-__all__ = ["Token"]
+__all__ = ["Token", "AuthToken"]
 
 
 # Класс для аутентификации
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class AuthToken(BaseModel):
+    e_mail: str
+    password: str
+
 
