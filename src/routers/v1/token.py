@@ -26,9 +26,3 @@ async def authenticate_user(auth_data: AuthToken, session: DBSession):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     jwt_token = create_jwt_token({"sub": user.e_mail})
     return {"access_token": jwt_token, "token_type": "bearer"}
-
-
-@token_router.get("/test")
-async def get_ath(current_user: Seller = Depends(get_current_user)):
-    print(current_user)
-    return current_user
