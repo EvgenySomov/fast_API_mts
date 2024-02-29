@@ -28,11 +28,18 @@ async def get_token(db_session, async_client):
 
 # Тест для проверки регистрации продавца
 @pytest.mark.asyncio
-async def test_create_seller(async_client):
+async def test_create_seller(db_session, async_client):
     data = {"first_name": "Evgeny", "last_name": "Somov", "e_mail": "somov@mail.ru", "password": "password"}
     response = await async_client.post("/api/v1/sellers/", json=data)
 
+    await db_session.flush()
     assert response.status_code == status.HTTP_201_CREATED
+
+    # Получим из базы записанного продавца, что бы взять его ID
+    # Так как каждый тест выдает сквозное ID
+
+    all_sellers = await db_session.execute(select(sellers.Seller))
+    seller = all_sellers.scalars().first()
 
     # Проверим пароль
     result_data = response.json()
@@ -41,7 +48,8 @@ async def test_create_seller(async_client):
     del data["password"]
     del result_data["password"]
 
-    data["id"] = 7
+    # Получим id из базы
+    data["id"] = seller.id
 
     assert result_data == data
 
