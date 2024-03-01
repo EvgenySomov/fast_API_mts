@@ -12,5 +12,3 @@ class Token(BaseModel):
 class AuthToken(BaseModel):
     e_mail: str
     password: str
-
-

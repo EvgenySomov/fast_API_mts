@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.configurations.database import get_async_session
 from src.models.sellers import Seller
-from src.schemas import IncomingSeller, ReturnedAllSellers, ReturnedSeller, ReturnedSellerBooks, BaseSeller
+from src.schemas import IncomingSeller, ReturnedAllSellers, ReturnedSellerBooks, BaseSeller, ReturnedSellerId
 from src.models.books import Book
 from src.jwt_auth.auth import pwd_context
 from src.jwt_auth.auth import get_current_user
@@ -19,7 +19,7 @@ DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 
 # Ручка для создания записи о продавце. Возвращает нового продавца.
-@sellers_router.post("/", response_model=ReturnedSeller, status_code=status.HTTP_201_CREATED)
+@sellers_router.post("/", response_model=ReturnedSellerId, status_code=status.HTTP_201_CREATED)
 async def create_seller(
         seller: IncomingSeller, session: DBSession
 ):
@@ -60,7 +60,7 @@ async def get_seller(seller_id: int, session: DBSession, current_user: Seller = 
 
 
 # Ручка для обновления данных о продавце.
-@sellers_router.put("/{seller_id}")
+@sellers_router.put("/{seller_id}", response_model=ReturnedSellerId)
 async def update_seller(seller_id: int, new_data: BaseSeller, session: DBSession):
     if updated_seller := await session.get(Seller, seller_id):
         updated_seller.first_name = new_data.first_name

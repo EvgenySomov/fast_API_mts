@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 from typing import List
 
 from .base import BaseModel
+from .books import Book
 
 
 class Seller(BaseModel):
@@ -15,4 +16,4 @@ class Seller(BaseModel):
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     e_mail: Mapped[str] = mapped_column(String(50), nullable=False)
     password: Mapped[str] = mapped_column(String(200), nullable=False)
-    books: Mapped[List["Book"]] = relationship("Book", cascade="all, delete-orphan")
+    books: Mapped[List[Book]] = relationship("Book", cascade="all, delete-orphan")

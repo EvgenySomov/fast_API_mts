@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.configurations.database import get_async_session
 from src.schemas import Token
-from src.jwt_auth.auth import create_jwt_token, get_user, pwd_context,  get_current_user
+from src.jwt_auth.auth import create_jwt_token, get_user, pwd_context
 from src.schemas import AuthToken
-from src.models.sellers import Seller
 
 token_router = APIRouter(tags=["token"], prefix="/token")
 

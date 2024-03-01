@@ -43,10 +43,9 @@ async def test_create_seller(db_session, async_client):
 
     # Проверим пароль
     result_data = response.json()
-    assert pwd_context.verify(data["password"], result_data["password"])
 
+    # Пароля больше нет
     del data["password"]
-    del result_data["password"]
 
     # Получим id из базы
     data["id"] = seller.id

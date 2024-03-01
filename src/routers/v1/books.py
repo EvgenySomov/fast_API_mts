@@ -22,7 +22,7 @@ async def create_book(
     book: IncomingBook, session: DBSession, current_user: Seller = Depends(get_current_user)
 ):
     # Проверяем, есть ли вообще продавец
-    if seller := await session.get(Seller, book.seller_id):
+    if _ := await session.get(Seller, book.seller_id):
         new_book = Book(
             title=book.title,
             author=book.author,

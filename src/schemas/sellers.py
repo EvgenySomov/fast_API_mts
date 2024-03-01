@@ -38,4 +38,3 @@ class ReturnedAllSellers(BaseModel):
 class ReturnedSellerBooks(BaseSeller):
     id: int
     books: list[ReturnedBookNotSellers]
-

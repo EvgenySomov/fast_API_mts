@@ -58,5 +58,3 @@ async def get_user(e_mail: str, session: DBSession):
     seller = await session.execute(select(Seller).filter(Seller.e_mail == e_mail))
     seller = seller.scalars().first()
     return seller
-
-
